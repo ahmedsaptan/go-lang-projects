@@ -1,47 +1,85 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
-func formFunc(w http.ResponseWriter, r *http.Request) {
-	
-	if err := r.ParseForm(); err != nil {
-		fmt.Fprintf(w, "pasedForm() error: %v", err)
-		return 
-	}
-
-	fmt.Fprintf(w, "Post request successfully");
-	name := r.FormValue("name")
-	address := r.FormValue("address")
-	fmt.Fprintf(w, "Name= %s\n", name);
-	fmt.Fprintf(w, "address= %s\n", address)
+type Movie struct {
+	ID       string    `json: "id"`
+	Isbn     string    `json:"isbn"`
+	Title    string    `json:"title"`
+	Director *Director `json:"director"`
 }
 
-func helloFunc(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/hello" {
-		http.Error(w, "404 not found", http.StatusNotFound)
-		return
-	}
-
-	if r.Method != "GET" {
-		http.Error(w, "404 not found", http.StatusNotFound)
-		return
-	}
-
-	fmt.Fprintf(w, "hello!")
+type Director struct {
+	FirstName string `json:"firstname"`
+	LastName  string `json:"lastname"`
 }
+
+var movies []Movie
+
+func getMovies(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(movies)
+}
+
+func getMovie(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+}
+
+func createMovie(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+}
+
+func deleteMovie(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	params := mux.Vars(r)
+	for index, item := range movies {
+		if item.ID == params["id"] {
+			// how to delete item using append..
+			movies = append(movies[:index])
+		}
+	}
+}
+
+func updateMovie(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+}
+
 func main() {
+	r := mux.NewRouter()
 
-	fileServer := http.FileServer(http.Dir("./static"))
+	movies = append(movies, Movie{
+		ID:    "1",
+		Isbn:  "837459",
+		Title: "movie 1",
+		Director: &Director{
+			FirstName: "ahmad",
+			LastName:  "sayed",
+		},
+	})
 
-	http.Handle("/", fileServer)
-	http.HandleFunc("/form", formFunc)
-	http.HandleFunc("/hello", helloFunc)
+	movies = append(movies, Movie{
+		ID:    "12",
+		Isbn:  "84537459",
+		Title: "movie 2",
+		Director: &Director{
+			FirstName: "enas",
+			LastName:  "gamal",
+		},
+	})
+	r.HandleFunc("/movies", getMovies).Methods("GET")
+	r.HandleFunc("/movies/{id}", getMovie).Methods("GET")
+	r.HandleFunc("/movies", createMovie).Methods("POST")
+	r.HandleFunc("/movies/{id}", deleteMovie).Methods("DELETE")
+	r.HandleFunc("/movies/{id}", updateMovie).Methods("PUT")
 
-	fmt.Println("server is satrt on 3000")
+	fmt.Printf("starting at port 3000")
 
-	log.Fatal(http.ListenAndServe(":3000", nil))
+	log.Fatal(http.ListenAndServe(":3000", r))
 }
